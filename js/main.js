@@ -6,7 +6,7 @@
    - 구글 Apps Script로만 저장
    ============================================= */
 
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxV6KkFaeI3LOlUj1LXPbrvXLsgUYB7W8K5Snz5kVNJfx2tiL9QdsEKate5nkk4GsM/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyjq4v2MLhzQZRCf5bCJKmO_tremdzalIgler3yg4zaq4E8bwHEoSvq4Xq0x87EpTE/exec";
 
 /* ── 추천코드 URL 파라미터 읽기 ── */
 function getQueryParam(name) {
