@@ -4,14 +4,39 @@
    - 추천코드는 URL ?ref= 값이 있을 때만 자동 입력
    - localStorage 사용 안 함
    - 구글 Apps Script로만 저장
+   - 여러 id 후보를 자동 탐색해서 값 누락 최소화
    ============================================= */
 
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyjq4v2MLhzQZRCf5bCJKmO_tremdzalIgler3yg4zaq4E8bwHEoSvq4Xq0x87EpTE/exec";
 
-/* ── 추천코드 URL 파라미터 읽기 ── */
+/* ── 공통 유틸 ── */
 function getQueryParam(name) {
   const params = new URLSearchParams(window.location.search);
   return params.get(name);
+}
+
+function getEl(...ids) {
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el) return el;
+  }
+  return null;
+}
+
+function getValue(...ids) {
+  const el = getEl(...ids);
+  if (!el) return '';
+  return (el.value || '').toString().trim();
+}
+
+function setValue(value, ...ids) {
+  const el = getEl(...ids);
+  if (el) el.value = value;
+}
+
+function setText(value, ...ids) {
+  const el = getEl(...ids);
+  if (el) el.textContent = value;
 }
 
 /* ── 헤더 스크롤 효과 ── */
@@ -58,19 +83,11 @@ if (mobileMenuBtn && mobileMenu) {
 window.addEventListener('DOMContentLoaded', function () {
   const refFromUrl = (getQueryParam('ref') || '').trim();
 
-  const refInput = document.getElementById('referralCode');
-  const refDisplay = document.getElementById('refCodeDisplay');
-
-  if (refInput) {
-    refInput.value = refFromUrl;
-  }
-
-  if (refDisplay) {
-    refDisplay.textContent = refFromUrl || '없음';
-  }
+  setValue(refFromUrl, 'referralCode', 'refCode', 'ref');
+  setText(refFromUrl || '없음', 'refCodeDisplay');
 
   /* ── 전화번호 자동 포맷 ── */
-  const phoneInput = document.getElementById('phone');
+  const phoneInput = getEl('phone', 'mobile', 'contact');
   if (phoneInput) {
     phoneInput.addEventListener('input', function () {
       const digits = this.value.replace(/\D/g, '').slice(0, 11);
@@ -130,14 +147,18 @@ if (consultationForm) {
     e.preventDefault();
 
     const formData = {
-      name: document.getElementById('name')?.value.trim() || '',
-      phone: document.getElementById('phone')?.value.trim() || '',
-      email: document.getElementById('email')?.value.trim() || '',
-      region: document.getElementById('region')?.value.trim() || '',
-      type: document.getElementById('consultType')?.value || '',
-      ref: document.getElementById('referralCode')?.value.trim() || '',
-      memo: document.getElementById('message')?.value.trim() || ''
+      name: getValue('name', 'userName'),
+      phone: getValue('phone', 'mobile', 'contact'),
+      email: getValue('email'),
+      region: getValue('region', 'area', 'location'),
+      storeType: getValue('consultType', 'storeType', 'type'),
+      installTarget: getValue('installTarget', 'installPlace', 'install', 'target'),
+      purpose: getValue('purpose', 'usePurpose', 'usagePurpose'),
+      ref: getValue('referralCode', 'refCode', 'ref'),
+      message: getValue('message', 'memo', 'inquiry', 'consultMessage')
     };
+
+    console.log('전송 데이터:', formData);
 
     if (!formData.name) {
       alert('이름을 입력해 주세요.');
@@ -156,10 +177,14 @@ if (consultationForm) {
 
       const response = await fetch(WEB_APP_URL, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(formData)
       });
 
       const result = await response.json();
+      console.log('응답 결과:', result);
 
       if (result.success) {
         consultationForm.style.display = 'none';
@@ -167,9 +192,8 @@ if (consultationForm) {
       } else {
         alert('접수 중 오류가 발생했습니다: ' + (result.message || '알 수 없는 오류'));
       }
-
     } catch (error) {
-      console.error(error);
+      console.error('전송 오류:', error);
       alert('전송 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       if (submitBtn) submitBtn.disabled = false;
@@ -179,17 +203,15 @@ if (consultationForm) {
   });
 }
 
+/* ── 폼 초기화 ── */
 if (formResetBtn) {
   formResetBtn.addEventListener('click', () => {
     if (consultationForm) {
       consultationForm.reset();
 
       const refFromUrl = (getQueryParam('ref') || '').trim();
-      const refInput = document.getElementById('referralCode');
-      const refDisplay = document.getElementById('refCodeDisplay');
-
-      if (refInput) refInput.value = refFromUrl;
-      if (refDisplay) refDisplay.textContent = refFromUrl || '없음';
+      setValue(refFromUrl, 'referralCode', 'refCode', 'ref');
+      setText(refFromUrl || '없음', 'refCodeDisplay');
 
       consultationForm.style.display = 'block';
     }
